@@ -1,0 +1,39 @@
+#!/bin/bash                                                                                                  
+# NRPE check for custom services
+
+# Show the user how to use the script
+function printHelp {
+    echo "[INFO] Usage instructions:"
+    echo "[INFO] ./check_service <app name>"
+}
+
+# Validate user input to this script
+function validateInputParameters {
+    if [ -z ${1+x} ]; then
+        echo "[ERROR] Expected app name as the first argument."
+        printHelp
+        exit
+    fi
+}
+
+# Set variables
+IP=127.0.0.1
+PORT=9080
+APP=$1
+FULL_STATUS=$(curl -s $IP:$PORT/api/$APP/app/health)
+STATUS_CODE=$(curl -s $IP:$PORT/api/$APP/app/health | grep ':' | awk '{print $3}' | sed 's/"//g')
+
+# Check the service
+function checkService {
+	# Convert status to lower case and compare to "up" 
+	if [ "${STATUS_CODE,,}" == "up" ]; then
+                echo "OK - $APP service is running"
+                exit 0
+        else
+                echo "CRITICAL - $APP service is down or unresponsive. Returned message of $FULL_STATUS"
+                exit 2
+        fi
+}
+
+validateInputParameters ${@}
+checkService
